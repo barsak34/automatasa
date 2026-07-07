@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDA Ciberseguridad</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e1e; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { display: flex; gap: 40px; width: 100%; max-width: 800px; justify-content: space-between; }
+        .panel { background-color: #2d2d2d; padding: 20px; border-radius: 10px; width: 45%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2 { text-align: center; border-bottom: 2px solid #555; padding-bottom: 10px; }
+        .estado { font-size: 1.5em; font-weight: bold; text-align: center; padding: 15px; border-radius: 8px; margin-bottom: 20px; transition: 0.3s; }
+        .qa { background-color: #8b0000; }
+        .qd { background-color: #00008b; }
+        .qv { background-color: #006400; }
+        .btn { display: block; width: 100%; padding: 10px; margin: 10px 0; font-size: 1em; cursor: pointer; border: none; border-radius: 5px; background-color: #444; color: white; transition: 0.2s; }
+        .btn:hover:not(:disabled) { background-color: #666; }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .stack-container { display: flex; flex-direction: column-reverse; align-items: center; gap: 5px; margin-top: 20px; min-height: 200px; border: 2px dashed #555; padding: 10px; }
+        .stack-item { background-color: #d4af37; color: black; padding: 10px 40px; font-weight: bold; border-radius: 5px; width: 50%; text-align: center; animation: popIn 0.3s ease-out; }
+        .log { margin-top: 20px; background-color: #111; padding: 15px; border-radius: 8px; font-family: monospace; height: 150px; overflow-y: auto; width: 100%; max-width: 800px; }
+        @keyframes popIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <h1>Simulador PDA: Intrusión de Redes</h1>
+
+    <div class="container">
+        <div class="panel">
+            <h2>Panel de Control</h2>
+            <div id="estado-display" class="estado qa">Estado Actual: q_a (Atacante)</div>
+            
+            <button class="btn" id="btn-vulnerar" onclick="accion('vulnerar')">vulnerar_puerto (RE -> DMZ)</button>
+            <button class="btn" id="btn-saltar" onclick="accion('saltar')">saltar_vlan (DMZ -> SI)</button>
+            <button class="btn" id="btn-escalar" onclick="accion('escalar')">escalar_privilegios (SI -> BD)</button>
+            <hr style="border-color: #555;">
+            <button class="btn" id="btn-bloquear" onclick="accion('bloquear')">bloquear_ip (Pop)</button>
+            <button class="btn" id="btn-falsa" onclick="accion('falsa_alarma')">falsa_alarma (Ignorar)</button>
+            
+            <button class="btn" style="background-color: #555; margin-top: 20px;" onclick="reiniciar()">Reiniciar Simulación</button>
+        </div>
+
+        <div class="panel">
+            <h2>Memoria (Pila Γ)</h2>
+            <div class="stack-container" id="stack-display">
+                </div>
+        </div>
+    </div>
+
+    <div class="log" id="log-display">
+        > Simulación iniciada. Estado qa, tope de pila RE.<br>
+    </div>
+
+    <script>
+        let estado = 'qa';
+        let pila = ['RE'];
+
+        function actualizarUI() {
+            // Actualizar display de estado
+            const estDisplay = document.getElementById('estado-display');
+            estDisplay.className = 'estado ' + estado;
+            if(estado === 'qa') estDisplay.innerText = 'Estado Actual: q_a (Atacante)';
+            if(estado === 'qd') estDisplay.innerText = 'Estado Actual: q_d (Defensor)';
+            if(estado === 'qv') estDisplay.innerText = 'Estado Actual: q_v (VICTORIA)';
+
+            // Control de botones
+            document.getElementById('btn-vulnerar').disabled = (estado !== 'qa' || pila[pila.length-1] !== 'RE');
+            document.getElementById('btn-saltar').disabled = (estado !== 'qa' || pila[pila.length-1] !== 'DMZ');
+            document.getElementById('btn-escalar').disabled = (estado !== 'qa' || pila[pila.length-1] !== 'SI');
+            document.getElementById('btn-bloquear').disabled = (estado !== 'qd');
+            document.getElementById('btn-falsa').disabled = (estado !== 'qd');
+
+            // Actualizar Pila Visual
+            const stackDisplay = document.getElementById('stack-display');
+            stackDisplay.innerHTML = '';
+            pila.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'stack-item';
+                div.innerText = item;
+                stackDisplay.appendChild(div);
+            });
+        }
+
+        function registrarLog(mensaje) {
+            const log = document.getElementById('log-display');
+            log.innerHTML += `> ${mensaje}<br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function accion(tipo) {
+            const tope = pila[pila.length - 1];
+
+            if (estado === 'qa') {
+                if (tipo === 'vulnerar' && tope === 'RE') {
+                    estado = 'qd';
+                    pila.push('DMZ');
+                    registrarLog('El atacante vulnera el puerto. HACE PUSH: DMZ. Pasa el turno al Defensor (q_d).');
+                } else if (tipo === 'saltar' && tope === 'DMZ') {
+                    estado = 'qd';
+                    pila.push('SI');
+                    registrarLog('El atacante salta la VLAN. HACE PUSH: SI. Pasa el turno al Defensor (q_d).');
+                } else if (tipo === 'escalar' && tope === 'SI') {
+                    estado = 'qv';
+                    pila.push('BD');
+                    registrarLog('¡El atacante escala privilegios! Acceso Root a la BD. VICTORIA (q_v).');
+                }
+            } else if (estado === 'qd') {
+                if (tipo === 'bloquear') {
+                    estado = 'qa';
+                    let expulsado = pila.pop(); // Pop real
+                    registrarLog(`Defensor bloquea IP. HACE POP: Elimina ${expulsado}. Retrocede a ${pila[pila.length-1]}. Vuelve al Atacante (q_a).`);
+                } else if (tipo === 'falsa_alarma') {
+                    estado = 'qa';
+                    registrarLog('Falsa alarma. La pila no cambia. Vuelve al Atacante (q_a).');
+                }
+            }
+            actualizarUI();
+        }
+
+        function reiniciar() {
+            estado = 'qa';
+            pila = ['RE'];
+            document.getElementById('log-display').innerHTML = '> Simulación reiniciada.<br>';
+            actualizarUI();
+        }
+
+        // Iniciar la UI al cargar
+        actualizarUI();
+    </script>
+</body>
+</html>
