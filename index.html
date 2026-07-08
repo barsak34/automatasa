@@ -33,7 +33,7 @@
             
             <button class="btn" id="btn-vulnerar" onclick="accion('vulnerar')">vulnerar_puerto (RE -> DMZ)</button>
             <button class="btn" id="btn-saltar" onclick="accion('saltar')">saltar_vlan (DMZ -> SI)</button>
-            <button class="btn" id="btn-escalar" onclick="accion('escalar')">escalar_privilegios (SI -> BD)</button>
+            <button class="btn" id="btn-escalar" onclick="accion('escalar')">escalar_privilegios (SI -> POP)</button>
             <hr style="border-color: #555;">
             <button class="btn" id="btn-bloquear" onclick="accion('bloquear')">bloquear_ip (Pop)</button>
             <button class="btn" id="btn-falsa" onclick="accion('falsa_alarma')">falsa_alarma (Ignorar)</button>
@@ -102,8 +102,8 @@
                     registrarLog('El atacante salta la VLAN. HACE PUSH: SI. Pasa el turno al Defensor (q_d).');
                 } else if (tipo === 'escalar' && tope === 'SI') {
                     estado = 'qv';
-                    pila.push('BD');
-                    registrarLog('¡El atacante escala privilegios! Acceso Root a la BD. VICTORIA (q_v).');
+                    let expulsado = pila.pop(); // Hacemos el POP del Servidor Interno (SI)
+                    registrarLog(`¡El atacante escala privilegios! HACE POP: Elimina ${expulsado} de la memoria. Acceso Root. VICTORIA (q_v).`);
                 }
             } else if (estado === 'qd') {
                 if (tipo === 'bloquear') {
